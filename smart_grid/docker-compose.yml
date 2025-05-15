@@ -1,0 +1,51 @@
+services:
+
+  db:
+    image: postgres
+    restart: no
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_USER: test
+      POSTGRES_DB: test
+    ports:
+      - 5432:5432
+    volumes:
+      - ./init_database.sql:/docker-entrypoint-initdb.d/init_database.sql
+
+  adminer:
+    image: adminer
+    restart: no
+    ports:
+      - 8081:8080
+
+  front:
+    # image: goldensuneur/frontend
+    image: ghcr.io/theolecalvar/smart-grid/frontend
+    restart: no
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    ports:
+      - 8082:8082
+  
+  windturbine:
+    # image: goldensuneur/windturbine
+    image: ghcr.io/theolecalvar/smart-grid/windturbine
+    restart: no
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    environment:
+      URL: "http://host.docker.internal:8080/ingress/windturbine"
+      TURBINE_ID: 2
+  
+  solar_panel:
+    # image: goldensuneur/solarpanel
+    image: ghcr.io/theolecalvar/smart-grid/solarpanel
+    restart: no
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    environment:
+      IP: "host.docker.internal"
+      PORT: 12345
+      SOLAR_PANEL_ID: 1

@@ -1,0 +1,22 @@
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.0" xsi:schemalocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
+<persistence-unit name="smart-grid" transaction-type="RESOURCE_LOCAL">
+        <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+        <properties>
+            <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/test?useSSL=false"/>
+            <property name="jakarta.persistence.jdbc.user" value="test"/>
+            <property name="jakarta.persistence.jdbc.password" value="test"/>
+        </properties>
+        <class>fr.imta.smartgrid.model.DataPoint</class>
+        <class>fr.imta.smartgrid.model.Grid</class>
+        <class>fr.imta.smartgrid.model.Measurement</class>
+        <class>fr.imta.smartgrid.model.Person</class>
+        <class>fr.imta.smartgrid.model.Sensor</class>
+        <class>fr.imta.smartgrid.model.Producer</class>
+        <class>fr.imta.smartgrid.model.Consumer</class>
+        <class>fr.imta.smartgrid.model.SolarPanel</class>
+        <class>fr.imta.smartgrid.model.EVCharger</class>
+        <class>fr.imta.smartgrid.model.WindTurbine</class>
+    </persistence-unit>
+</persistence>
