@@ -12,10 +12,10 @@ import jakarta.persistence.EntityTransaction;
 
 import java.util.List;
 
-public class ConsumersHandler implements Handler<RoutingContext> {
+public class HandlerConsumers implements Handler<RoutingContext> {
     private final EntityManager db;
 
-    public ConsumersHandler(EntityManager db) {
+    public HandlerConsumers(EntityManager db) {
         this.db = db;
     }
 
@@ -26,7 +26,7 @@ public class ConsumersHandler implements Handler<RoutingContext> {
         String id = context.pathParam("id");
         
         try {
-            // Route based on HTTP method and path
+            // Gestion des routes selon la méthode HTTP et le chemin
             if ("GET".equals(method)) {
                 if (id != null) {
                     getConsumer(context, Long.parseLong(id));
@@ -42,24 +42,23 @@ public class ConsumersHandler implements Handler<RoutingContext> {
             } else {
                 context.response()
                         .setStatusCode(400)
-                        .end("Bad request");
+                        .end("Requête incorrecte");
             }
         } catch (NumberFormatException e) {
             context.response()
                     .setStatusCode(400)
-                    .end("Invalid ID format");
+                    .end("Format d'ID invalide");
         } catch (Exception e) {
             context.response()
                     .setStatusCode(500)
-                    .end("Internal server error: " + e.getMessage());
+                    .end("Erreur interne du serveur : " + e.getMessage());
         }
     }
     
     private void getAllConsumers(RoutingContext context) {
-        // Query for all consumers
+        // Récupérer tous les consommateurs depuis la base de données
         List<Consumer> consumers = db.createQuery("SELECT c FROM Consumer c", Consumer.class).getResultList();
         
-        // Create JSON response
         JsonArray response = new JsonArray();
         
         for (Consumer consumer : consumers) {
@@ -69,26 +68,26 @@ public class ConsumersHandler implements Handler<RoutingContext> {
                     .put("description", consumer.getDescription())
                     .put("max_power", consumer.getMaxPower());
             
-            // Add grid ID if present
+            // Ajouter l'identifiant du réseau électrique s'il existe
             if (consumer.getGrid() != null) {
                 consumerJson.put("grid", consumer.getGrid().getId());
             }
             
-            // Add kind based on class
+            // Déterminer le type de consommateur
             String kind = consumer instanceof EVCharger ? "EVCharger" : "Consumer";
             consumerJson.put("kind", kind);
             
-            // Add available measurements
+            // Ajouter les mesures disponibles
             JsonArray measurements = new JsonArray();
             consumer.getMeasurements().forEach(measurement -> measurements.add(measurement.getId()));
             consumerJson.put("available_measurements", measurements);
             
-            // Add owners
+            // Ajouter les propriétaires
             JsonArray owners = new JsonArray();
             consumer.getOwners().forEach(owner -> owners.add(owner.getId()));
             consumerJson.put("owners", owners);
             
-            // Add specific EVCharger fields
+            // Ajouter les champs spécifiques à EVCharger
             if (consumer instanceof EVCharger) {
                 EVCharger evCharger = (EVCharger) consumer;
                 consumerJson.put("voltage", evCharger.getVoltage());
@@ -99,50 +98,44 @@ public class ConsumersHandler implements Handler<RoutingContext> {
             response.add(consumerJson);
         }
         
-        // Return response
+        // Envoyer la réponse JSON
         context.response()
                 .putHeader("content-type", "application/json")
                 .end(response.encode());
     }
     
     private void getConsumer(RoutingContext context, long id) {
-        // Find consumer by ID
+        // Rechercher un consommateur par ID
         Consumer consumer = db.find(Consumer.class, id);
         
         if (consumer == null) {
             context.response()
                     .setStatusCode(404)
-                    .end("Consumer not found");
+                    .end("Consommateur non trouvé");
             return;
         }
         
-        // Create JSON response
         JsonObject consumerJson = new JsonObject()
                 .put("id", consumer.getId())
                 .put("name", consumer.getName())
                 .put("description", consumer.getDescription())
                 .put("max_power", consumer.getMaxPower());
         
-        // Add grid ID if present
         if (consumer.getGrid() != null) {
             consumerJson.put("grid", consumer.getGrid().getId());
         }
         
-        // Add kind based on class
         String kind = consumer instanceof EVCharger ? "EVCharger" : "Consumer";
         consumerJson.put("kind", kind);
         
-        // Add available measurements
         JsonArray measurements = new JsonArray();
         consumer.getMeasurements().forEach(measurement -> measurements.add(measurement.getId()));
         consumerJson.put("available_measurements", measurements);
         
-        // Add owners
         JsonArray owners = new JsonArray();
         consumer.getOwners().forEach(owner -> owners.add(owner.getId()));
         consumerJson.put("owners", owners);
         
-        // Add specific EVCharger fields
         if (consumer instanceof EVCharger) {
             EVCharger evCharger = (EVCharger) consumer;
             consumerJson.put("voltage", evCharger.getVoltage());
@@ -150,7 +143,6 @@ public class ConsumersHandler implements Handler<RoutingContext> {
             consumerJson.put("type", evCharger.getType());
         }
         
-        // Return response
         context.response()
                 .putHeader("content-type", "application/json")
                 .end(consumerJson.encode());
@@ -163,7 +155,7 @@ public class ConsumersHandler implements Handler<RoutingContext> {
             Consumer consumer;
             String kind = body.getString("kind", "Consumer");
             
-            // Create the appropriate consumer type
+            // Créer l'objet approprié selon le type
             if ("EVCharger".equals(kind)) {
                 consumer = new EVCharger();
                 EVCharger evCharger = (EVCharger) consumer;
@@ -171,17 +163,16 @@ public class ConsumersHandler implements Handler<RoutingContext> {
                 evCharger.setMaxAmp(body.getDouble("maxAmp", 0.0).intValue());
                 evCharger.setType(body.getString("type", ""));
             } else {
-                // Cannot instantiate abstract Consumer class directly
-                // Create a concrete implementation instead
-                consumer = new Consumer() {}; // Anonymous subclass of Consumer
+                // Création d'une sous-classe anonyme de Consumer (Consumer est abstraite)
+                consumer = new Consumer() {};
             }
             
-            // Set common fields
+            // Remplir les champs communs
             consumer.setName(body.getString("name", ""));
             consumer.setDescription(body.getString("description", ""));
             consumer.setMaxPower(body.getDouble("max_power", 0.0));
             
-            // Set grid if provided
+            // Associer à un réseau électrique si précisé
             if (body.containsKey("grid")) {
                 Long gridId = body.getLong("grid");
                 Grid grid = db.find(Grid.class, gridId);
@@ -190,13 +181,13 @@ public class ConsumersHandler implements Handler<RoutingContext> {
                 }
             }
             
-            // Persist to database
+            // Enregistrement dans la base de données
             EntityTransaction transaction = db.getTransaction();
             transaction.begin();
             db.persist(consumer);
             transaction.commit();
             
-            // Return success response with the created ID
+            // Répondre avec l'ID du consommateur créé
             context.response()
                     .setStatusCode(201)
                     .putHeader("content-type", "application/json")
@@ -204,7 +195,7 @@ public class ConsumersHandler implements Handler<RoutingContext> {
         } catch (Exception e) {
             context.response()
                     .setStatusCode(400)
-                    .end("Invalid consumer data: " + e.getMessage());
+                    .end("Données invalides pour le consommateur : " + e.getMessage());
         }
     }
     
@@ -215,17 +206,16 @@ public class ConsumersHandler implements Handler<RoutingContext> {
             if (consumer == null) {
                 context.response()
                         .setStatusCode(404)
-                        .end("Consumer not found");
+                        .end("Consommateur non trouvé");
                 return;
             }
             
             JsonObject body = context.getBodyAsJson();
             
-            // Start transaction
             EntityTransaction transaction = db.getTransaction();
             transaction.begin();
             
-            // Update common fields if provided
+            // Mise à jour des champs communs
             if (body.containsKey("name")) {
                 consumer.setName(body.getString("name"));
             }
@@ -238,7 +228,6 @@ public class ConsumersHandler implements Handler<RoutingContext> {
                 consumer.setMaxPower(body.getDouble("max_power"));
             }
             
-            // Update grid if provided
             if (body.containsKey("grid")) {
                 Long gridId = body.getLong("grid");
                 Grid grid = db.find(Grid.class, gridId);
@@ -247,7 +236,7 @@ public class ConsumersHandler implements Handler<RoutingContext> {
                 }
             }
             
-            // Update EVCharger specific fields
+            // Mise à jour spécifique pour EVCharger
             if (consumer instanceof EVCharger && body.containsKey("voltage")) {
                 ((EVCharger) consumer).setVoltage(body.getDouble("voltage").intValue());
             }
@@ -260,10 +249,8 @@ public class ConsumersHandler implements Handler<RoutingContext> {
                 ((EVCharger) consumer).setType(body.getString("type"));
             }
             
-            // Commit changes
             transaction.commit();
             
-            // Return success response
             context.response()
                     .setStatusCode(200)
                     .putHeader("content-type", "application/json")
@@ -271,7 +258,7 @@ public class ConsumersHandler implements Handler<RoutingContext> {
         } catch (Exception e) {
             context.response()
                     .setStatusCode(400)
-                    .end("Error updating consumer: " + e.getMessage());
+                    .end("Erreur lors de la mise à jour : " + e.getMessage());
         }
     }
     
@@ -282,28 +269,22 @@ public class ConsumersHandler implements Handler<RoutingContext> {
             if (consumer == null) {
                 context.response()
                         .setStatusCode(404)
-                        .end("Consumer not found");
+                        .end("Consommateur non trouvé");
                 return;
             }
             
-            // Start transaction
             EntityTransaction transaction = db.getTransaction();
             transaction.begin();
-            
-            // Remove consumer
             db.remove(consumer);
-            
-            // Commit changes
             transaction.commit();
             
-            // Return success response
             context.response()
                     .setStatusCode(204)
                     .end();
         } catch (Exception e) {
             context.response()
                     .setStatusCode(500)
-                    .end("Error deleting consumer: " + e.getMessage());
+                    .end("Erreur lors de la suppression : " + e.getMessage());
         }
     }
 }
