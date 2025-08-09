@@ -1,6 +1,3 @@
-# Groupe B1-3/4
-BARRAQUE Alix, DUBOC Marc, TANDEAU DE MARSAC Gautier
-
 ## Routes implémentées
 
 ### Routes d'ingress
